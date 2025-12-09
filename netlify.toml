@@ -1,0 +1,5 @@
+[build]
+  publish = "."
+  command = ""
+
+# Optional: set headers or redirects here
