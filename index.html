@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORCA CSV Generator</title>
+    <style>
+        :root {
+            --color-primary: #2180a4;
+            --color-primary-hover: #1d6d90;
+            --color-primary-active: #1a5a79;
+            --color-success: #218040;
+            --color-warning: #a84b2f;
+            --color-error: #c01527;
+            --color-bg: #fcfcf9;
+            --color-surface: #fffffe;
+            --color-text: #134252;
+            --color-text-secondary: #626c71;
+            --color-border: rgba(94, 82, 64, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--color-bg);
+            color: var(--color-text);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin: 0 0 10px 0;
+            color: var(--color-primary);
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            text-align: center;
+        }
+
+        .drop-area {
+            border: 2px dashed var(--color-primary);
+            border-radius: 8px;
+            padding: 40px;
+            background: rgba(33, 128, 141, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drop-area:hover {
+            background: rgba(33, 128, 141, 0.1);
+            border-color: var(--color-primary-hover);
+        }
+
+        .drop-area.dragover {
+            background: rgba(33, 128, 141, 0.15);
+            border-color: var(--color-primary-active);
+            transform: scale(1.02);
+        }
+
+        .drop-area-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+            color: var(--color-text);
+        }
+
+        .drop-area-hint {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin: 0;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+            margin-top: 20px;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-primary:active {
+            background: var(--color-primary-active);
+        }
+
+        .btn-secondary {
+            background: rgba(94, 82, 64, 0.12);
+            color: var(--color-text);
+            margin: 5px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(94, 82, 64, 0.2);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+            margin: 5px;
+        }
+
+        .btn-success:hover {
+            background: #1d6b35;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status-success {
+            background: rgba(33, 128, 64, 0.1);
+            border-left: 4px solid var(--color-success);
+            color: var(--color-success);
+        }
+
+        .status-error {
+            background: rgba(192, 21, 47, 0.1);
+            border-left: 4px solid var(--color-error);
+            color: var(--color-error);
+        }
+
+        .status-info {
+            background: rgba(33, 128, 141, 0.1);
+            border-left: 4px solid var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(33, 128, 141, 0.08);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .file-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(94, 82, 64, 0.1);
+        }
+
+        .file-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .file-info-label {
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        .file-info-value {
+            color: var(--color-text-secondary);
+        }
+
+        .download-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .download-section.show {
+            display: block;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .download-card {
+            background: rgba(33, 128, 141, 0.08);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .download-card-title {
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 5px;
+        }
+
+        .download-card-desc {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .download-card-rows {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-section.show {
+            display: block;
+        }
+
+        .preview-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid var(--color-border);
+            margin-bottom: 20px;
+        }
+
+        .preview-tab {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .preview-tab:hover {
+            color: var(--color-text);
+        }
+
+        .preview-tab.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        .preview-content {
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(33, 128, 141, 0.04);
+            border-radius: 6px;
+            padding: 15px;
+            font-size: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .preview-content.active {
+            display: block;
+        }
+
+        .progress {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(94, 82, 64, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(33, 128, 141, 0.08);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧪 ORCA CSV Generator</h1>
+            <p class="subtitle">Convert ORCA quantum chemistry output files to structured CSV data</p>
+        </header>
+
+        <div class="card upload-section">
+            <div class="drop-area" id="dropArea">
+                <p class="drop-area-text">📁 Drop ORCA output file here</p>
+                <p class="drop-area-hint">or click to select from your computer</p>
+            </div>
+            <input type="file" id="fileInput" accept=".out,.log">
+            <button class="btn btn-primary" id="selectBtn">Select File</button>
+
+            <div class="status" id="status"></div>
+            <div class="progress" id="progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div id="fileInfoSection"></div>
+        </div>
+
+        <div class="card stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="statAtoms">0</div>
+                <div class="stat-label">Atoms</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statGeometries">0</div>
+                <div class="stat-label">Geometries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statIterations">0</div>
+                <div class="stat-label">Iterations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statEnergy">0</div>
+                <div class="stat-label">Final Energy</div>
+            </div>
+        </div>
+
+        <div class="card download-section" id="downloadSection">
+            <h2 style="margin-top: 0;">📥 Download CSV Files</h2>
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-card-title">Atomic Coordinates</div>
+                    <div class="download-card-desc">All atomic positions from geometry optimization</div>
+                    <div class="download-card-rows" id="rowsCoords">0 rows</div>
+                    <button class="btn btn-success" onclick="downloadCSV('coords')">Download CSV</button>
+                </div>
+                <div class="download-card">
+                    <div class="download-card-title">Energy Convergence</div>
+                    <div class="download-card-desc">Energy values per iteration</div>
+                    <div class="download-card-rows" id="rowsEnergy">0 rows</div>
+                    <button class="btn btn-success" onclick="downloadCSV('energies')">Download CSV</button>
+                </div>
+                <div class="download-card">
+                    <div class="download-card-title">Molecular Properties</div>
+                    <div class="download-card-desc">Dipole moment and final energy</div>
+                    <div class="download-card-rows" id="rowsProps">1 row</div>
+                    <button class="btn btn-success" onclick="downloadCSV('properties')">Download CSV</button>
+                </div>
+                <div class="download-card">
+                    <div class="download-card-title">Summary Report</div>
+                    <div class="download-card-desc">High-level calculation summary</div>
+                    <div class="download-card-rows" id="rowsSummary">13 rows</div>
+                    <button class="btn btn-success" onclick="downloadCSV('summary')">Download CSV</button>
+                </div>
+            </div>
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-success" onclick="downloadAllCSVs()">⬇️ Download All Files</button>
+                <button class="btn btn-secondary" onclick="resetApp()">↻ Upload New File</button>
+            </div>
+        </div>
+
+        <div class="card preview-section" id="previewSection">
+            <h2 style="margin-top: 0;">👁️ Preview Data</h2>
+            <div class="preview-tabs">
+                <button class="preview-tab active" onclick="showPreview('coords')">Coordinates (first 10)</button>
+                <button class="preview-tab" onclick="showPreview('energies')">Energies</button>
+                <button class="preview-tab" onclick="showPreview('properties')">Properties</button>
+                <button class="preview-tab" onclick="showPreview('summary')">Summary</button>
+            </div>
+            <div class="preview-content active" id="previewCoords"></div>
+            <div class="preview-content" id="previewEnergies"></div>
+            <div class="preview-content" id="previewProperties"></div>
+            <div class="preview-content" id="previewSummary"></div>
+        </div>
+    </div>
+
+    <script>
+        let parsedData = null;
+
+        // File upload handlers
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectBtn = document.getElementById('selectBtn');
+
+        selectBtn.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => {
+                dropArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => {
+                dropArea.classList.remove('dragover');
+            });
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.out') && !file.name.endsWith('.log')) {
+                showStatus('Please upload a valid ORCA output file (.out or .log)', 'error');
+                return;
+            }
+
+            showStatus('Processing file...', 'info');
+            document.getElementById('progress').classList.add('show');
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    updateProgress(30);
+                    const content = e.target.result;
+                    parsedData = parseORCAFile(content);
+                    updateProgress(90);
+                    displayResults();
+                    updateProgress(100);
+                    setTimeout(() => {
+                        document.getElementById('progress').classList.remove('show');
+                    }, 500);
+                } catch (error) {
+                    showStatus(`Error parsing file: ${error.message}`, 'error');
+                    document.getElementById('progress').classList.remove('show');
+                }
+            };
+            reader.readAsText(file, 'utf-8');
+        }
+
+        function parseORCAFile(content) {
+            const data = {
+                coordinates: [],
+                energies: [],
+                properties: {},
+                summary: {}
+            };
+
+            // Extract atomic coordinates
+            const coordPattern = /CARTESIAN COORDINATES \(ANGSTROEM\)\s*-{20,}([\s\S]*?)(?:\n\n|\n\s*\n)/g;
+            let sectionNum = 0;
+            let coordMatch;
+
+            while ((coordMatch = coordPattern.exec(content)) !== null) {
+                sectionNum++;
+                const sectionText = coordMatch[1];
+                const atomPattern = /([A-Z][a-z]?)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/g;
+                let atomIdx = 1;
+
+                let atomCoordMatch;
+                while ((atomCoordMatch = atomPattern.exec(sectionText)) !== null) {
+                    data.coordinates.push({
+                        section: sectionNum,
+                        atom: atomIdx,
+                        element: atomCoordMatch[1],
+                        x: parseFloat(atomCoordMatch[2]),
+                        y: parseFloat(atomCoordMatch[3]),
+                        z: parseFloat(atomCoordMatch[4])
+                    });
+                    atomIdx++;
+                }
+            }
+
+            // Extract energies
+            const energyPattern = /Total Energy\s*:\s*(-?\d+\.\d+)/g;
+            let energyMatch;
+            let iteration = 1;
+
+            while ((energyMatch = energyPattern.exec(content)) !== null) {
+                data.energies.push({
+                    iteration: iteration,
+                    energy: parseFloat(energyMatch[1])
+                });
+                iteration++;
+            }
+
+            // Extract final properties
+            const finalEnergyMatch = content.match(/FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)/);
+            if (finalEnergyMatch) {
+                data.properties.finalEnergy = parseFloat(finalEnergyMatch[1]);
+            }
+
+            const dipoleMatch = content.match(/Magnitude \(Debye\).*?:\s*(-?\d+\.\d+)/);
+            if (dipoleMatch) {
+                data.properties.dipoleMoment = parseFloat(dipoleMatch[1]);
+            }
+
+            // Generate summary
+            const atomsPerSection = data.coordinates.length / sectionNum || 0;
+            data.summary = {
+                totalAtoms: data.coordinates.length,
+                geometries: sectionNum,
+                atomsPerSection: Math.round(atomsPerSection),
+                elements: 'C (Carbon)',
+                elementCount: data.coordinates.filter(a => a.element === 'C').length,
+                iterations: data.energies.length,
+                initialEnergy: data.energies[0]?.energy || 0,
+                finalEnergy: data.energies[data.energies.length - 1]?.energy || 0,
+                energyChange: Math.abs((data.energies[data.energies.length - 1]?.energy || 0) - (data.energies[0]?.energy || 0)),
+                dipoleMoment: data.properties.dipoleMoment || 0
+            };
+
+            return data;
+        }
+
+        function displayResults() {
+            document.getElementById('statsGrid').style.display = 'grid';
+            document.getElementById('downloadSection').classList.add('show');
+            document.getElementById('previewSection').classList.add('show');
+
+            const data = parsedData;
+
+            // Update stats
+            document.getElementById('statAtoms').textContent = data.coordinates.length.toLocaleString();
+            document.getElementById('statGeometries').textContent = data.summary.geometries;
+            document.getElementById('statIterations').textContent = data.summary.iterations;
+            document.getElementById('statEnergy').textContent = data.summary.finalEnergy.toFixed(2);
+
+            // Update download info
+            document.getElementById('rowsCoords').textContent = `${data.coordinates.length} rows`;
+            document.getElementById('rowsEnergy').textContent = `${data.energies.length} rows`;
+
+            // Update previews
+            updatePreview();
+
+            showStatus(`✓ Successfully parsed ORCA file! ${data.coordinates.length} atoms in ${data.summary.geometries} geometries`, 'success');
+        }
+
+        function updatePreview() {
+            const data = parsedData;
+
+            // Coordinates preview
+            const coordsCSV = ['Geometry_Section,Atom_Number,Element,X_Angstrom,Y_Angstrom,Z_Angstrom'];
+            data.coordinates.slice(0, 10).forEach(a => {
+                coordsCSV.push(`${a.section},${a.atom},${a.element},${a.x.toFixed(4)},${a.y.toFixed(4)},${a.z.toFixed(4)}`);
+            });
+            document.getElementById('previewCoords').textContent = coordsCSV.join('\n');
+
+            // Energies preview
+            const energiesCSV = ['Iteration,Total_Energy_Hartree'];
+            data.energies.forEach(e => {
+                energiesCSV.push(`${e.iteration},${e.energy.toFixed(6)}`);
+            });
+            document.getElementById('previewEnergies').textContent = energiesCSV.join('\n');
+
+            // Properties preview
+            const propsCSV = ['Dipole_Magnitude,Final_Energy_Hartree'];
+            propsCSV.push(`${data.properties.dipoleMoment.toFixed(6)},${data.properties.finalEnergy.toFixed(6)}`);
+            document.getElementById('previewProperties').textContent = propsCSV.join('\n');
+
+            // Summary preview
+            const summaryCSV = ['Analysis_Type,Parameter,Value',
+                'File Statistics,Total Atoms (across all geometries),' + data.summary.totalAtoms,
+                'File Statistics,Total Geometry Sections,' + data.summary.geometries,
+                'File Statistics,Atoms per Section,' + data.summary.atomsPerSection,
+                'Energy Information,Initial Total Energy (Hartree),' + data.summary.initialEnergy.toFixed(6),
+                'Energy Information,Final Total Energy (Hartree),' + data.summary.finalEnergy.toFixed(6),
+                'Energy Information,Total Energy Iterations,' + data.summary.iterations,
+                'Energy Information,Energy Convergence,' + data.summary.energyChange.toFixed(6) + ' Hartree',
+                'Molecular Properties,Dipole Moment,' + data.summary.dipoleMoment.toFixed(6),
+                'Molecular Properties,Dipole Moment Unit,Debye'
+            ];
+            document.getElementById('previewSummary').textContent = summaryCSV.join('\n');
+        }
+
+        function showPreview(type) {
+            document.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.preview-content').forEach(c => c.classList.remove('active'));
+
+            event.target.classList.add('active');
+            const previewMap = {
+                'coords': 'previewCoords',
+                'energies': 'previewEnergies',
+                'properties': 'previewProperties',
+                'summary': 'previewSummary'
+            };
+            document.getElementById(previewMap[type]).classList.add('active');
+        }
+
+        function downloadCSV(type) {
+            const data = parsedData;
+            let csv = '';
+            let filename = '';
+
+            if (type === 'coords') {
+                csv = 'Geometry_Section,Atom_Number,Element,X_Angstrom,Y_Angstrom,Z_Angstrom\n';
+                data.coordinates.forEach(a => {
+                    csv += `${a.section},${a.atom},${a.element},${a.x.toFixed(4)},${a.y.toFixed(4)},${a.z.toFixed(4)}\n`;
+                });
+                filename = 'ORCA_Atomic_Coordinates.csv';
+            } else if (type === 'energies') {
+                csv = 'Iteration,Total_Energy_Hartree\n';
+                data.energies.forEach(e => {
+                    csv += `${e.iteration},${e.energy.toFixed(6)}\n`;
+                });
+                filename = 'ORCA_Energies.csv';
+            } else if (type === 'properties') {
+                csv = 'Dipole_Magnitude,Final_Energy_Hartree\n';
+                csv += `${data.properties.dipoleMoment.toFixed(6)},${data.properties.finalEnergy.toFixed(6)}\n`;
+                filename = 'ORCA_Molecular_Properties.csv';
+            } else if (type === 'summary') {
+                csv = 'Analysis_Type,Parameter,Value\n';
+                const summaryData = [
+                    ['File Statistics', 'Total Atoms (across all geometries)', data.summary.totalAtoms],
+                    ['File Statistics', 'Total Geometry Sections', data.summary.geometries],
+                    ['File Statistics', 'Atoms per Section', data.summary.atomsPerSection],
+                    ['Energy Information', 'Initial Total Energy (Hartree)', data.summary.initialEnergy.toFixed(6)],
+                    ['Energy Information', 'Final Total Energy (Hartree)', data.summary.finalEnergy.toFixed(6)],
+                    ['Energy Information', 'Total Energy Iterations', data.summary.iterations],
+                    ['Energy Information', 'Energy Convergence', data.summary.energyChange.toFixed(6) + ' Hartree'],
+                    ['Molecular Properties', 'Dipole Moment', data.summary.dipoleMoment.toFixed(6)],
+                    ['Molecular Properties', 'Dipole Moment Unit', 'Debye']
+                ];
+                summaryData.forEach(row => {
+                    csv += `${row[0]},${row[1]},${row[2]}\n`;
+                });
+                filename = 'ORCA_Summary_Report.csv';
+            }
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        function downloadAllCSVs() {
+            downloadCSV('coords');
+            setTimeout(() => downloadCSV('energies'), 200);
+            setTimeout(() => downloadCSV('properties'), 400);
+            setTimeout(() => downloadCSV('summary'), 600);
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status show status-${type}`;
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+
+        function resetApp() {
+            parsedData = null;
+            fileInput.value = '';
+            document.getElementById('statsGrid').style.display = 'none';
+            document.getElementById('downloadSection').classList.remove('show');
+            document.getElementById('previewSection').classList.remove('show');
+            document.getElementById('status').classList.remove('show');
+            showStatus('', '');
+        }
+    </script>
+</body>
+</html>
